@@ -5,10 +5,28 @@ import {Link, useNavigate} from 'react-router-dom'
 import {useSelector, useDispatch} from 'react-redux'
 import { signInWithPopup, signOut, onAuthStateChanged  } from 'firebase/auth'
 import { selectUserName, selectUserPhoto, setUserLogin, setSignOut } from '../features/user/userSlice'
+import { useAuthState } from "react-firebase-hooks/auth";
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    getDocs,
+    orderBy,
+    where,
+    query,
+    Timestamp,
+    updateDoc,
+} from 'firebase/firestore'
+import { storage, logout} from '../firebase'
+import db from '../firebase'
 
 const Header = () => {
     const userName = useSelector(selectUserName);
     const userPhoto = useSelector(selectUserPhoto);
+    const [user, loading, error] = useAuthState(auth);
+
 
     
 
@@ -31,7 +49,7 @@ const Header = () => {
     }
 
     const signedOut = () => {
-        signOut(auth)
+       logout()
         .then(() => {
             dispatch(setSignOut());
             navigate("/")

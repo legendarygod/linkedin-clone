@@ -1,8 +1,8 @@
-import React, {useEffect} from 'react'
+import React, {useEffect, useState} from 'react'
 //styling
 import styled from 'styled-components'
 //router
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 //icons
 import {TbDots, TbSend} from 'react-icons/tb'
 import {AiOutlineComment, AiOutlineShareAlt} from 'react-icons/ai'
@@ -12,7 +12,27 @@ import { selectUserName, selectUserPhoto, setUserLogin, setSignOut, selectUserEm
 import {useSelector, useDispatch} from 'react-redux'
 //router
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
+//Firebase Tools For Backeend
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    getDocs,
+    orderBy,
+    where,
+    query,
+    Timestamp,
+    updateDoc,
+} from 'firebase/firestore'
+import { auth, storage} from '../firebase'
+import db from '../firebase'
+
+import { useAuthState } from "react-firebase-hooks/auth";
+import ProfileModal from '../components/ProfileModal'
+
+
 
 
 
@@ -22,29 +42,58 @@ const Profile = () => {
   const userName = useSelector(selectUserName);
   const userPhoto = useSelector(selectUserPhoto);
   const userEmail = useSelector(selectUserEmail)
+    const [user, loading, error] = useAuthState(auth);
+    const {uid} = useParams()
+    const [userProfile, setUserProfile] = useState({})
+    const [showModal, setShowModal] = useState('close')
+
+
   const navigate = useNavigate()
 
-   useEffect(() => {
-        if(!userName){
-            navigate('/');
+  const fetchUserProfile = async () => {
+        try {
+          const q = query(collection(db, "users"), where("uid", "==", uid));
+          const doc = await getDocs(q);
+          const data = doc.docs[0].data();
+          console.log(data)
+          setUserProfile(data)
+          
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+    useEffect(() => {
+        console.log(uid)
+  console.log(userProfile);
+
+    if (loading) return;
+    if (!user) return navigate("/");
+    fetchUserProfile();
+  }, [user, loading]);
+
+  console.log(userProfile);
+  const handleClick = (e) => {
+        e.preventDefault();
+        if (e.target !== e.currentTarget){
             return;
         }
+        switch(showModal){
+            case "open":
+                setShowModal("close");
+                break;
+            case "close":
+                setShowModal("open");
+                break;
+            default:
+                setShowModal("close");
+                break;
+        }
 
-    }, [])
-
-    const randomFollowing = () => {
-        let number = Math.floor(Math.random() * 2000)
-        return number;
     }
 
-    const randomFollowers = () => {
-        let number =  Math.floor(Math.random() * 2000000)
-        console.log(number)
-        return number;
-    }
+    
   return (
-    <>
-    <Header />
 <Container>
     <Head>
         User Profile(Full Profile Functionality coming soon)
@@ -53,44 +102,56 @@ const Profile = () => {
     </Head>
     <ProfileInfo>
         <CoverPhoto>
-            <img src={userPhoto} alt='pic'/>
             <DisplayPhoto>
-                <img src={userPhoto} alt='pic' />
+                <img src={userProfile ? userProfile.photoURL : "/images/user.svg"} alt='pic' />
             </DisplayPhoto>
         </CoverPhoto>
         <ActionBar>
             <ActionBtn>
-                <button>
-                <img src='/images/nav-messaging.svg' alt='pic' />
+                {user.uid === uid ? (
+                    <>
+                     <button onClick = {handleClick}>
+                        Edit Profile
+                     </button>      
+                    </>
+
+                ) : (
+                    <>
+                   <button>
+                    <img src='/images/nav-messaging.svg' alt='pic' />
 
                 </button>
                 <button>
                     Follow
                 </button>
+                </>
+            )}
+
 
             </ActionBtn>
         </ActionBar>
         <UserDetail>
             <User>
 
-            <h2>{userName}</h2>
-            <span>{userEmail}</span>
+            <h2>{userProfile ? userProfile.name : ""}</h2>
+            <span>{userProfile ? userProfile.name : ""}</span>
             </User>
             <FollowCount>
                 <div>
-                    <Link to='/profile'>{randomFollowers}</Link>
+                    <Link to='/profile'>{userProfile.followers ? userProfile.followers.length : 0}</Link>
                     <span>Followers</span>
                 </div>
                 <div>
-                    <Link to='/profile'>{randomFollowing}</Link>
+                    <Link to='/profile'>{userProfile.following ? userProfile.following.length : 0}</Link>
                     <span>Following</span>
                 </div>
             </FollowCount>
         </UserDetail>
         <Bio>
-            <BioText>This is the Bio of this User</BioText>
-            <BioCity>Town, City</BioCity>
+            <BioText>{userProfile ? userProfile.bio : ""}</BioText>
+            <BioCity>{userProfile ? `${userProfile.town}, ${userProfile.city}` : ""}</BioCity>
         </Bio>
+
     </ProfileInfo>
     <Posts>
         
@@ -166,9 +227,8 @@ const Profile = () => {
                 
                 </Article>
     </Posts>
-</Container> 
-    </>
-   
+    <ProfileModal showModal={showModal} handleClick={handleClick} />
+</Container>
   )
 }
 
@@ -178,7 +238,6 @@ const Container = styled.div`
     margin: 0 auto;
     display: flex;
     width: 80%;
-    padding-top: 52px;
     flex-direction: column;
     @media (max-width: 768px){
         width: 100%;
@@ -202,26 +261,22 @@ padding: 15px;
 const CoverPhoto = styled.div`
     width: 100%;
     height: 200px;
-    position: relative;
-    img{
-        width: 100%;
-        height: 100%;
-        object-fit: fill;
-    }
+    display: flex;
+    justify-content: center;
+    align-items: center;
 `
 
 const DisplayPhoto = styled.div`
     width: 100px;
     height: 100px;
-    background-color: #000;
     border-radius: 50%;
     position: absolute;
     bottom: -20%;
     left: 10%;
     z-index: 200;
     img{
-        width: 98%;
-        height: 98%;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         border-radius: 50%;
     }

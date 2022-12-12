@@ -1,39 +1,36 @@
-import React, {useEffect} from 'react'
-import {auth, provider} from '../firebase'
+import React,{useEffect} from 'react'
+import {auth, provider, signInWithGoogle} from '../firebase'
 import styled from 'styled-components'
-import { selectUserName, selectUserPhoto,  setUserLogin } from '../features/user/userSlice'
+import { selectUserName, selectUserPhoto,  setUserLogin,  } from '../features/user/userSlice'
 import {useSelector, useDispatch} from 'react-redux'
 import { signInWithPopup } from 'firebase/auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuthState } from "react-firebase-hooks/auth";
+
 
 const Login = () => {
   const navigate = useNavigate()
+    const [user, loading, error] = useAuthState(auth);
   const dispatch = useDispatch()
 
-   const userName = useSelector(selectUserName);
-   const userPhoto = useSelector(selectUserPhoto);
+
    
-  useEffect(() => {
-    if(userName){
-          navigate('/home')
+
+    const checks = () => {
+  if (loading) {
+            return <h2>Loading</h2>
         }
-  }, [])
-    
+  if (user) navigate("/home")
+}
+    useEffect(()=> {
+       checks() 
+    }, [user, loading])
 
     
 
     const signIn = async () => {
       try{
-        let result = await signInWithPopup(auth, provider)
-        let user = result.user
-        dispatch(setUserLogin({
-          name: user.displayName,
-          email: user.email,
-          photo: user.photoURL
-        }))
-        if(userName){
-          navigate('/home')
-        }
+        signInWithGoogle()
       }catch(error){
         console.log(error);
       }
@@ -44,8 +41,16 @@ const Login = () => {
         <img src='/images/login-logo.svg' alt='pic'></img>
       </a>
       <div>
-        <Join>Join Now</Join>
-        <SignIn>Sign In</SignIn>
+        <Join>
+          <Link to="/register">
+            Register
+          </Link>
+          </Join>
+        <SignIn>
+          <Link to="/login">
+            Login
+          </Link>
+        </SignIn>
       </div>
     </Nav>
     <Section>
@@ -99,9 +104,6 @@ const Join = styled.a`
     color: rgba(0, 0, 0, 0.9);
     text-decoration: none;
   }
-  @media (max-width: 768px){
-    font-size: 12px;
-  }
 `
 
 const SignIn = styled.a`
@@ -120,9 +122,6 @@ const SignIn = styled.a`
     background-color: rgba(112, 161, 249, 0.115);
     color: #0a66c2;
     text-decoration: none;
-  }
-  @media (max-width: 768px){
-    font-size: 12px;
   }
 `
 

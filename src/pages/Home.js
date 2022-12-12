@@ -7,21 +7,56 @@ import RightSide from '../components/RightSide'
 import {Link, useNavigate} from 'react-router-dom'
 import {useSelector, useDispatch} from 'react-redux'
 import { selectUserName, selectUserPhoto, setUserLogin, setSignOut } from '../features/user/userSlice'
+import { useAuthState } from "react-firebase-hooks/auth";
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    getDocs,
+    orderBy,
+    where,
+    query,
+    Timestamp,
+    updateDoc,
+} from 'firebase/firestore'
+import {auth, storage} from '../firebase'
+import db from '../firebase'
+import {ref, uploadBytesResumable, getDownloadURL} from 'firebase/storage'
+
+
 
 
 
 
 const Home = (props) => {
+
+    const [user, loading, error] = useAuthState(auth);
+
+const dispatch = useDispatch()
+    const fetchUserName = async () => {
+        try {
+          const q = query(collection(db, "users"), where("uid", "==", user?.uid));
+          const doc = await getDocs(q);
+          const data = doc.docs[0].data();
+          dispatch(setUserLogin({
+          name: data.name,
+          email: data.email,
+          photo: data.photoURL
+        }))
+        } catch (err) {
+          console.error(err);
+        }
+      };
     
     const userName = useSelector(selectUserName);
     const navigate = useNavigate()
-    useEffect(() => {
-        if(!userName){
-            navigate('/');
-            return;
-        }
-
-    }, [])
+      useEffect(() => {
+    if (loading) return;
+    if (!user) return navigate("/");
+    fetchUserName();
+  }, [user, loading]);
     
 
   return (

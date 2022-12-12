@@ -3,7 +3,7 @@ import React, {useState, useCallback, useEffect} from 'react'
 //styling
 import styled from 'styled-components'
 //website navigation
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
 //Icons
 import { FcLandscape,  FcPhotoReel, FcVideoFile, FcGlobe, FcGallery, FcPicture, FcSms } from 'react-icons/fc'
 import { AiFillLike, AiOutlineLike, AiFillForward, AiOutlineComment, AiOutlineShareAlt } from 'react-icons/ai'
@@ -19,6 +19,7 @@ import ModalPost from './ModalPost'
 //reducers and redux 
 import { selectUserName, selectUserPhoto, setUserLogin, setSignOut, selectUserEmail } from '../features/user/userSlice'
 import {useSelector, useDispatch} from 'react-redux'
+import { useAuthState } from "react-firebase-hooks/auth";
 
 //Firebase Tools For Backeend
 import {
@@ -27,17 +28,20 @@ import {
     deleteDoc,
     doc,
     onSnapshot,
+    getDocs,
     orderBy,
+    where,
     query,
     Timestamp,
     updateDoc,
 } from 'firebase/firestore'
-import { storage} from '../firebase'
+import { auth, storage} from '../firebase'
 import db from '../firebase'
 import {ref, uploadBytesResumable, getDownloadURL} from 'firebase/storage'
 
 //miscellaneous features
 import fuzzyTime from 'fuzzy-time'
+
 
 
 const Main = () => {
@@ -47,12 +51,35 @@ const Main = () => {
     const [load, setLoad] = useState("")
     const [showComments, setShowComments] = useState([])
     const [showEditPost, setShowEditPost] = useState(false)
-
+    const [user, loading, error] = useAuthState(auth);
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+    
+    const fetchUserName = async () => {
+        try {
+          const q = query(collection(db, "users"), where("uid", "==", user?.uid));
+          const doc = await getDocs(q);
+          const data = doc.docs[0].data();
+          dispatch(setUserLogin({
+          name: data.displayName,
+          email: data.email,
+          photo: data.photoURL
+        }))
+        } catch (err) {
+          console.error(err);
+        }
+      };
 
     //user credewentials
     const userName = useSelector(selectUserName);
     const userPhoto = useSelector(selectUserPhoto);
     const userEmail = useSelector(selectUserEmail)
+
+     useEffect(() => {
+    if (loading) return;
+    if (!user) return navigate("/");
+    fetchUserName();
+  }, [user, loading]);
 
 
     //uploading the post to the database
@@ -216,20 +243,20 @@ const Main = () => {
                 {posts.length > 0 ? (
                     posts.map(({post, postID}, id) => (
                     <Article key={id}>
-                             <SharedActor>
-                    <Link to='/home'>
-                        <img src={post.user.photo} alt='pic' />
-                        <div>
+                      <SharedActor>
+                        <Link to={`/profile/${user?.uid}`}>
+                            <img src={post.user.photo} alt='pic' />
+                        </Link>
+                          <div>
                             <span>{post.user.name}</span>
                             <span>{post.user.title}</span>
                             <span>{fuzzyTime(post.date.toDate())}</span>
-                        </div>
-                        <button onClick={() =>
-                  setShowEditPost((prev) => (prev === postID ? null : postID))
-                }>
+                          </div>
+                          <button onClick={() =>
+                            setShowEditPost((prev) => (prev === postID ? null : postID))
+                          }>
                             <TbDots />
-                        </button>
-                    </Link>
+                          </button>
                      {showEditPost === postID && (
                 <EditModel>
                   <li>
@@ -392,10 +419,6 @@ const ShareBox = styled(CommonCard)`
                 }
                 span{
                     color: #70b5f9;
-                }
-                @media (max-width: 768px){
-                    font-size: 13px;
-                    padding: 2px;
                 }
             }
         }

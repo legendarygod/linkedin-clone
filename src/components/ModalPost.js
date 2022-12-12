@@ -8,6 +8,7 @@ import {FcComments} from 'react-icons/fc'
 import ReactPlayer from 'react-player'
 import {useSelector, useDispatch} from 'react-redux'
 import { selectUserName, selectUserPhoto, setUserLogin, setSignOut, selectUserEmail  } from '../features/user/userSlice'
+import { useAuthState } from "react-firebase-hooks/auth";
 import db from "../firebase"
 
 /*________________________________________________________________________________*/
@@ -21,6 +22,8 @@ const ModalPost = (props) => {
   const [image, setImage] = useState();
   const sharedVedio = useRef();
   const [vedio, setVedio] = useState();
+    const [user, loading, error] = useAuthState(auth);
+
 
   let textURL = text.match(
     new RegExp(
@@ -44,6 +47,7 @@ const ModalPost = (props) => {
             name: userName,
             title: userEmail,
             photo: userPhoto,
+            userId: user?.uid
           },
           date: Timestamp.now(),
           sharedImage: "",
@@ -128,8 +132,7 @@ const ModalPost = (props) => {
                   disabled={image || vedio || textURL}
                   onClick={() => sharedImage.current.click()}
                 >
-                  {/* <img src="/Images/photo-icon.svg" alt="Add a pic" /> */}
-                  <GiPhotoCamera />
+                  <img src="/Images/photo-icon.svg" alt="Add a pic" />
                   <input
                     ref={sharedImage}
                     onChange={(e) => setImage(e.target.files[0])}
@@ -143,8 +146,7 @@ const ModalPost = (props) => {
                   disabled={image || vedio || textURL}
                   onClick={() => sharedVedio.current.click()}
                 >
-                  {/* <img src="/Images/vedio-icon.svg" alt="Add a vedio" /> */}
-                  <IoVideocam />
+                  <img src="/Images/video-icon.svg" alt="Add a video" />
                   <input
                     ref={sharedVedio}
                     onChange={(e) => setVedio(e.target.files[0])}
@@ -155,8 +157,7 @@ const ModalPost = (props) => {
                 </button>
 
                 <button disabled={image || vedio || textURL}>
-                  {/* <img src="/Images/document.svg" alt="Add a document" /> */}
-                  <IoVideocam />
+                  <img src="/Images/document.svg" alt="Add a document" />
                 </button>
               </div>
 

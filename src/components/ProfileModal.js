@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import styled from 'styled-components'
+import { FaTimes } from 'react-icons/fa'
 import Header from '../components/Header'
 import { selectUserName, selectUserPhoto, setUserLogin, setSignOut, selectUserEmail  } from '../features/user/userSlice'
 import {useSelector, useDispatch} from 'react-redux'
@@ -21,9 +22,8 @@ import {ref, uploadBytesResumable, getDownloadURL} from 'firebase/storage'
 //routers
 import { useNavigate, useParams } from 'react-router-dom'
 
-const EditProfile = () => {
-    const [profileCover, setProfileCover] = useState()
-    const [profileDP, setProfileDP] = useState()
+const EditProfile = (props) => {
+    const [profileDP, setProfileDP] = useState('')
     const [profileUsername, setProfileUsername] = useState("")
     const [profileTown, setProfileTown] = useState('')
     const [profileCity, setProfileCity] = useState('')
@@ -45,17 +45,15 @@ const EditProfile = () => {
     }, [])
     
 
+    const reset = () => {
+    setProfileDP('')
+    setProfileUsername("")
+    setProfileTown("")
+    setProfileBio("")
+    setProfileCity("")
+  };
 
-
-    const handlecChange = (e) => {
-        const image = e.target.files[0]
-
-        if (image === "" || image === undefined){
-            alert(`not an image, the file is a ${typeof(image)}`)
-            return;
-        }
-        setProfileCover(image)
-    }
+    
     const handleDPChange = (e) => {
         const image = e.target.files[0]
 
@@ -69,7 +67,6 @@ const EditProfile = () => {
    
 
    const postProfileHandler = (e) => {
-    
         updateDoc(doc(db, "users", uid), {
             photoURL: profileDP,
             town: profileTown,
@@ -81,8 +78,17 @@ const EditProfile = () => {
 
   return (
     <>
-    {/* <Header /> */}
-    <Container>
+    {props.showModal == "open" && (
+        <Container>
+        <Content>
+            <button
+            onClick={(e) => {
+              reset();
+              props.handleClick(e);
+            }}
+          >
+            <FaTimes />
+          </button>
         <FormGroup>
             <input type='text' placeholder='Username' onChange={(e) => {setProfileUsername(e.target.value)}} value={profileUsername}/>
         </FormGroup>
@@ -111,38 +117,42 @@ const EditProfile = () => {
                                     </label>
                                 </p>
         </FormGroup>
-        <FormGroup>
-            <input
-                    type="file"
-                    accept="image/*"
-                    id='fileCover' 
-                    style={{
-                                    display: "none"
-                                }}
-                    onChange={(e) => handlecChange(e)}
-            />
-            <p>
-                                    <label htmlFor='file'>
-                                        Click To Select/Change Cover Image
-                                    </label>
-                                </p>
-        </FormGroup>
         <Button onClick={(e) => {postProfileHandler(e)}}>Update Profile</Button>
+        </Content>
+       
+       
     </Container>
+    )}
     </>
+    
     
   )
 }
 
 export default EditProfile
 
-const Container = styled.div`
-    width: 450px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
+const Container = styled.section`
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.75);
+  animation: fadeIn 0.3s;
+`;
 
-`
+const Content = styled.article`
+  max-width: 552px;
+  max-height: 90%;
+  background-color: white;
+  border-radius: 5px;
+  position: relative;
+  top: 32px;
+  margin: 0 auto;
+  animation: up 0.5s ease-out;
+`; 
+
 const FormGroup = styled.div`
  padding: 20px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.15);
