@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
+import {auth, provider} from '../firebase'
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { FaTimes } from 'react-icons/fa'
 import {IoVideocam} from 'react-icons/io5'
